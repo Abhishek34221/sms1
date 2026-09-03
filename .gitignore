@@ -1,0 +1,5 @@
+.env
+venv
+abhi
+__pycache__/
+*.pyc
