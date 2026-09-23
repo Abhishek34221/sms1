@@ -57,3 +57,44 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/sms-frontend:v${{ github.run_number }}
+
+  deploy:
+    name: Deploy on Production
+    needs: [build-backend, build-frontend]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check SSH connection to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{secrets.EC2_HOST}}
+          username: ubuntu
+          key: ${{secrets.EC2_SSH_KEY}}
+          script: |
+            echo "SSH CONNECTION SUCCESS ✅"
+            whoami
+            hostname
+        
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{secrets.EC2_HOST}}
+          username: ubuntu
+          key: ${{secrets.EC2_SSH_KEY}}
+          script: |
+            docker pull ${{secrets.DOCKERHUB_USERNAME}}/sms-backend:v${{github.run_number}}
+            docker pull ${{secrets.DOCKERHUB_USERNAME}}/sms-frontend:v${{github.run_number}}
+
+            docker stop sms-backend || true
+            docker rm sms-backend || true
+            docker run -d --name sms-backend -p 8000:8000 ${{secrets.DOCKERHUB_USERNAME}}/sms-backend:v${{github.run_number}}
+
+            docker stop sms-frontend || true
+            docker rm sms-frontend || true
+            docker run -d --name sms-frontend -p 80:5173 ${{secrets.DOCKERHUB_USERNAME}}/sms-frontend:v${{github.run_number}}
+
+
+
+
+        
+
